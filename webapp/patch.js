@@ -12,28 +12,21 @@ window.firebase.analytics = function() {
     };
 };
 
-// 3. Mock RemoteConfig (FIXED: Added getString)
+// 3. Mock RemoteConfig (Fixes your current crash)
 window.firebase.remoteConfig = function() {
     return {
         fetchAndActivate: function() { return Promise.resolve(true); },
-        getValue: function() { 
-            return { asString: () => "", asNumber: () => 0, asBoolean: () => false }; 
-        },
-        getString: function(key) { return ""; }, // Fixes the getString error
+        getValue: function() { return { asString: function() { return ""; }, asNumber: function() { return 0; }, asBoolean: function() { return false; } }; },
         getAll: function() { return {}; }
     };
 };
 
-// 4. Mock Auth (FIXED: Added getIdToken)
+// 4. Mock Auth (Crucial for the engine to proceed)
 window.firebase.auth = function() {
-    let dummyUser = { 
-        isAnonymous: true, 
-        uid: "local-player-123", 
-        nick: "Player",
-        getIdToken: function() { return Promise.resolve("local-token"); } // Fixes getIdToken error
-    };
+    let dummyUser = { isAnonymous: true, uid: "local-player-123", nick: "Player" };
     return {
         onAuthStateChanged: function(callback) {
+            // Tell the game we are "logged in" as a guest after a tiny delay
             setTimeout(() => callback(dummyUser), 100);
         },
         currentUser: dummyUser,
@@ -65,20 +58,5 @@ window.adRewardedShow = function() {
         Module.ccall("ad_rewarded_on_showed", "v", ["number"], [1]); 
     }
 };
-// Add this to the BOTTOM of your patch.js
-function forceShowButton() {
-    let p = document.getElementById("progress_or_play");
-    if (p && !p.innerHTML.includes("PLAY")) {
-        console.log("Patch.js: Forcing Play Button display.");
-        p.innerHTML = `<a class="overlay_button" href="#" onclick="checkStartGame(); return false;">PLAY NOW</a>`;
-    }
-}
-
-// Check every 2 seconds if we should show the button
-setInterval(() => {
-    if (window.gameDownloadProgressFrac >= 1) {
-        forceShowButton();
-    }
-}, 2000);
 
 console.log("Super-Patch.js: All systems bypassed.");
